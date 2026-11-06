@@ -1,0 +1,38 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: knowledge_assistant
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5432:5432"]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/knowledge_assistant?schema=public
+      JWT_SECRET: ${JWT_SECRET:-development-only-change-me}
+      AI_SERVICE_URL: http://ai-service:8000
+      MOCK_AI: ${MOCK_AI:-true}
+    ports: ["3000:3000"]
+    depends_on: [db, ai-service]
+  ai-service:
+    build: ./ai-service
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4.1-mini}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      MOCK_AI: ${MOCK_AI:-true}
+    ports: ["8000:8000"]
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      VITE_API_URL: http://localhost:3000/api/v1
+    ports: ["5173:5173"]
+    depends_on: [api]
+volumes:
+  postgres_data:

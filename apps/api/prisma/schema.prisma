@@ -1,0 +1,96 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+enum ProcessingStatus { PENDING PROCESSING READY FAILED }
+enum QuestionStatus { ANSWERED UNABLE_TO_ANSWER HUMAN_REVIEW FAILED }
+
+model Organization {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  assistants   Assistant[]
+  documents    Document[]
+  questions    QuestionLog[]
+}
+
+model Assistant {
+  id             String       @id @default(cuid())
+  organizationId String
+  tokenLookup    String       @unique
+  tokenHash      String       @unique
+  tokenHint      String
+  status         String       @default("ACTIVE")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  questions      QuestionLog[]
+  @@index([organizationId])
+}
+
+model Document {
+  id               String          @id @default(cuid())
+  organizationId   String
+  filename         String
+  storagePath      String
+  fileSize         Int
+  pageCount        Int
+  processingStatus ProcessingStatus @default(PENDING)
+  processingError  String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  chunks           DocumentChunk[]
+  @@unique([id, organizationId])
+  @@index([organizationId, createdAt])
+}
+
+model DocumentChunk {
+  id             String    @id @default(cuid())
+  organizationId String
+  documentId     String
+  chunkIndex     Int
+  pageNumber     Int
+  content        String
+  /// pgvector: gemini-embedding-001 produces 768-dimensional vectors
+  embedding      Unsupported("vector(768)")?
+  document       Document  @relation(fields: [documentId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  @@unique([documentId, chunkIndex])
+  @@index([organizationId, documentId])
+}
+
+model QuestionLog {
+  id               String              @id @default(cuid())
+  organizationId   String
+  assistantId      String
+  question         String
+  status           QuestionStatus
+  questionType     String
+  decisionRequired Boolean             @default(false)
+  createdAt        DateTime            @default(now())
+  organization     Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assistant        Assistant           @relation(fields: [assistantId], references: [id], onDelete: Cascade)
+  decisions        DecisionExecution[]
+  @@index([organizationId, createdAt])
+}
+
+model DecisionExecution {
+  id            String      @id @default(cuid())
+  questionLogId String
+  decisionType  String
+  decisionName  String
+  result        Json
+  status        String
+  executionTime Int
+  question      QuestionLog @relation(fields: [questionLogId], references: [id], onDelete: Cascade)
+}

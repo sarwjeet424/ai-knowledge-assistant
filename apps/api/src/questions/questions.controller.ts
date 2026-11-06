@@ -1,0 +1,2 @@
+import { Body, Controller, Get, Ip, Param, Post } from '@nestjs/common'; import { ApiTags } from '@nestjs/swagger'; import { AskDto } from './ask.dto'; import { QuestionsService } from './questions.service';
+@ApiTags('public assistant') @Controller() export class QuestionsController {constructor(private readonly questions:QuestionsService){} @Get('public/assistants/:token') publicAssistant(@Param('token') token:string){return this.questions.publicAssistant(token)} @Post('ask') ask(@Body() dto:AskDto,@Ip() ip:string){return this.questions.ask(dto,ip)} }
