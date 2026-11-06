@@ -1,53 +1,159 @@
 # AI Knowledge & Decision Assistant
 
-A production-minded MVP for organizations that need a public assistant over their private PDF knowledge base. It combines tenant-scoped retrieval, optional OpenAI generation, and deterministic System 1 decision models; it is not a generic PDF chatbot.
+A multi-tenant, evidence-based AI assistant that answers questions grounded in uploaded PDF documents. Administrators upload knowledge bases; visitors ask questions through a public assistant widget; all answers are scoped to the organization's documents with source citations.
 
-## Key capabilities
+## 🔗 Live URLs
 
-- Organization registration/login using bcrypt and JWT.
-- Isolated organization knowledge bases with private PDF storage and server-side PDF validation (10 files, 10 MB/file, 20 pages/file).
-- Assistant tokens stored only as bcrypt hashes, public URL and iframe embed snippet.
-- Tenant-filtered retrieval with document/page references and a safe unable-to-answer fallback.
-- Parallel Boolean, Choice, and Score decision models followed by a deterministic result combiner.
-- Usage analytics, Swagger, Docker Compose, mock AI mode, and automated unit tests.
+> *To be updated after deployment*
 
-## Architecture
+| Service | URL | Status |
+|---|---|---|
+| Frontend | — | Pending |
+| Backend API | — | Pending |
+| AI Service health | Included in backend | Pending |
+| API Docs (Swagger) | — `/api/docs` | Pending |
 
-```mermaid
-flowchart LR
- Browser --> Web[React + Vite]
- Web --> API[NestJS REST API]
- API --> DB[(PostgreSQL + pgvector)]
- API --> AI[FastAPI extraction/AI]
- AI --> LLM[OpenAI, configurable]
+## 🏗️ Architecture
+
+```
+Vercel (React SPA)
+    ↕ HTTPS
+Render (NestJS + FastAPI in Docker)
+    ↕                    ↕
+Neon PostgreSQL    Cloudflare R2
+(+ pgvector)       (PDF storage)
+    ↕
+Gemini API (LLM + Embeddings)
+Groq (optional fallback LLM)
 ```
 
-See [architecture](docs/architecture.md), [AI pipeline](docs/ai-pipeline.md), [decision engine](docs/decision-engine.md), [security](docs/security.md), and [API documentation](docs/api-documentation.md).
+## 🆓 Free-Tier Services
 
-## Run locally
+| Service | Provider | Plan |
+|---|---|---|
+| Frontend | Vercel | Hobby (free) |
+| Backend + AI service | Render | Free web service |
+| Database | Neon | Free PostgreSQL |
+| PDF storage | Cloudflare R2 | Free allowance |
+| LLM | Google Gemini | AI Studio free tier |
+| Embeddings | Google Gemini | AI Studio free tier |
+| LLM fallback | Groq | Free developer |
 
-1. Copy `.env.example` to `.env` and set a strong `JWT_SECRET`. Keep `MOCK_AI=true` to run without an OpenAI key.
-2. Start database and services: `docker compose up --build`.
-3. Visit `http://localhost:5173`; Swagger is at `http://localhost:3000/api/docs`.
+**Budget: ₹0 / month**
 
-For iterative local development, run `npm install`, `npm run dev:api`, `npm run dev:web`, and in `ai-service` create a virtual environment then `pip install -r requirements.txt && uvicorn app.main:app --reload`.
+## 📋 Features
 
-## Production configuration
+- **Multi-tenant isolation** — each organization's documents are strictly scoped
+- **PDF upload** — validated (signature, size ≤ 10MB, pages ≤ 20, quota = 10 docs/org)
+- **AI-generated answers** — Gemini grounded in document context
+- **Vector embeddings** — 768-dim Gemini embeddings via pgvector semantic search
+- **Decision engine** — deterministic policy evaluation (eligibility, GPA, etc.)
+- **Public assistant widget** — embeddable via iframe with assistant token
+- **Source citations** — every answer cites document filename and page number
+- **Provider abstraction** — swap LLM/embedding providers without changing business logic
 
-Set `OPENAI_API_KEY`, `OPENAI_CHAT_MODEL`, `OPENAI_EMBEDDING_MODEL`, `DATABASE_URL`, `AI_SERVICE_URL`, and `MOCK_AI=false`. Use managed PostgreSQL with pgvector, encrypted private object storage, HTTPS, secret management, distributed rate limiting, and a durable async job queue before production scale.
+## 🚀 Quick Start (Local Development)
 
-## Core endpoint groups
+### Prerequisites
+- Node.js 20+
+- Python 3.12+
+- Docker (optional, for local postgres)
 
-- Auth: `/api/v1/auth/register`, `/login`, `/logout`, `/me`
-- Documents: `/api/v1/documents`
-- Assistants: `/api/v1/assistants`
-- Public: `/api/v1/public/assistants/:token`, `/api/v1/ask`
-- Analytics: `/api/v1/analytics/overview`
+### Setup
 
-## Tests
+```bash
+# 1. Clone
+git clone https://github.com/sarwjeet424/ai-knowledge-assistant
+cd ai-knowledge-assistant
 
-Run `npm test`; Python tests are described in [docs/testing.md](docs/testing.md). Regenerate the six fictional fixture PDFs with `npm run seed:fixtures`. The mock provider ensures automated tests never require paid API calls. The fixture question matrix is in [sample-data/questions.md](sample-data/questions.md).
+# 2. Copy env
+cp .env.example .env
+# Fill in your values (see docs/deployment-guide.md)
 
-## Important limitations
+# 3. Local database (Docker)
+docker-compose up db -d
 
-This MVP demonstrates the security boundary and orchestration model. Before a production release, replace the in-memory public rate limiter with shared infrastructure, introduce durable job processing, complete pgvector similarity SQL/embedding persistence, and run full integration tests against a clean Postgres database. See the transparent implementation report in [docs/implementation-status.md](docs/implementation-status.md).
+# 4. Install API deps
+cd apps/api && npm install
+
+# 5. Run migrations
+npx prisma db push
+
+# 6. Start API
+npm run start:dev
+
+# 7. Install and start AI service (new terminal)
+cd ai-service
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+
+# 8. Install and start frontend (new terminal)
+cd apps/web
+npm install
+npm run dev
+```
+
+App runs at: http://localhost:5173
+
+## 🔐 Demo Credentials
+
+> These are created after first deployment by registering via the UI.
+
+**Organization A — Education:**
+- Email: `orgA@demo.example` (register at `/register`)
+- Documents: Scholarship Rules, Admission Policy, Fee Structure
+
+**Organization B — Healthcare:**
+- Email: `orgB@demo.example` (register at `/register`)
+- Documents: Patient Guide, Treatment Policy, Billing Rules
+
+## 📝 Environment Variables
+
+See [`.env.example`](.env.example) for all variables. Key ones:
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | Neon PostgreSQL connection string |
+| `JWT_SECRET` | 48+ char random secret |
+| `GEMINI_API_KEY` | Google AI Studio key |
+| `GEMINI_CHAT_MODEL` | `gemini-3.8-flash` |
+| `GEMINI_EMBEDDING_MODEL` | `gemini-embedding-001` (768-dim) |
+| `MOCK_AI` | `false` in production |
+| `R2_*` | Cloudflare R2 credentials |
+| `VITE_API_URL` | Backend URL (build-time) |
+
+## ⚠️ Data Privacy Notice
+
+The free-tier Gemini API may use submitted content to improve Google's models. **Only use synthetic/demonstration documents**, not confidential or personal data.
+
+## 📚 Documentation
+
+- [`docs/deployment-guide.md`](docs/deployment-guide.md) — Step-by-step deployment
+- [`docs/free-tier-usage.md`](docs/free-tier-usage.md) — All service limits & protections
+- [`docs/production-architecture.md`](docs/production-architecture.md) — Architecture diagrams
+- [`docs/deployment-status.md`](docs/deployment-status.md) — Live deployment status
+- [`docs/api-documentation.md`](docs/api-documentation.md) — API reference
+
+## 🧪 Testing
+
+```bash
+# Python AI service (10 tests, no API key needed)
+cd ai-service && python -m pytest tests/ -v
+
+# Backend TypeScript
+cd apps/api && npm test
+
+# Frontend build
+cd apps/web && npm run build
+```
+
+## 🔒 Security
+
+- JWT (HS256) for admin authentication
+- bcrypt (cost 12) for passwords
+- SHA-256 lookup + bcrypt for assistant tokens
+- CORS restricted to configured frontend origin
+- Helmet.js security headers
+- R2 bucket private (no public URLs)
+- SSL-required database connections
+- No secrets in `VITE_` env vars
