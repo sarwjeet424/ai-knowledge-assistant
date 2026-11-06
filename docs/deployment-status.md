@@ -1,126 +1,219 @@
-# Deployment Status
+# Deployment Status & Next Steps
 
-> Last updated: 2026-11-06
+## Current State
 
-## Service Status Table
-
-| Service | Provider | Plan | Status | URL / Details |
-|---|---|---|---|---|
-| Frontend | Vercel | Free Hobby | 🟡 Deploying | https://web-fklnoy8ut-sarwjeet424gmailcoms-projects.vercel.app |
-| Backend | Render | Free | ⏳ Pending — awaiting Render setup | — |
-| AI Service | Render | Included in backend | ⏳ Pending | Internal localhost:8000 |
-| Database | Neon | Free | ⏳ Pending — awaiting Neon setup | — |
-| PDF Storage | Cloudflare R2 | Free allowance | ⏳ Pending — awaiting R2 setup | — |
-| LLM | Google Gemini | Free tier | ⏳ Pending — API key needed | gemini-3.8-flash |
-| Embeddings | Google Gemini | Free tier | ⏳ Pending — API key needed | gemini-embedding-001 |
-| GitHub Repo | GitHub | Free | ✅ Live | https://github.com/sarwjeet424/ai-knowledge-assistant |
-| CI/CD | GitHub Actions | Free | ✅ Configured | .github/workflows/ci.yml |
+| Component | Status | URL |
+|---|---|---|
+| GitHub repo | ✅ Live | [sarwjeet424/ai-knowledge-assistant](https://github.com/sarwjeet424/ai-knowledge-assistant) |
+| Vercel frontend | ✅ Live (placeholder API URL) | [web-beige-nu-95.vercel.app](https://web-beige-nu-95.vercel.app) |
+| GitHub CI | 🔄 Running | Triggered on latest push |
+| Render backend | ⏳ Needs setup | Manual dashboard required |
+| Neon PostgreSQL | ⏳ Needs setup | Manual dashboard required |
+| Cloudflare R2 | ⏳ Needs setup | Manual dashboard required |
+| Gemini API key | ⏳ Needs key | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
 
 ---
 
-## What is Fully Done
+## ✅ Code Fixes Applied This Session
 
-- ✅ GitHub repository created: `sarwjeet424/ai-knowledge-assistant` (private)
-- ✅ All source code pushed (102 files, 3984 lines)
-- ✅ GitHub Actions CI workflow configured
-- ✅ Vercel connected to GitHub repository and deploying
-- ✅ Python AI service: 10/10 tests passing locally (MOCK_AI=true)
-- ✅ TypeScript compiles cleanly (0 errors, strict mode)
-- ✅ AI provider architecture built (Gemini + Groq + Mock)
-- ✅ Cloudflare R2 storage abstraction implemented
-- ✅ StorageProvider interface (upload/download/delete/exists)
-- ✅ Combined Docker deployment (NestJS + FastAPI via supervisord)
-- ✅ Prisma schema with pgvector (768-dim, gemini-embedding-001)
-- ✅ All docs: deployment-guide, free-tier-usage, production-architecture
-- ✅ `.env.example` with all production variables documented
-- ✅ `.gitignore` excludes all secrets, local uploads, build artifacts
-
-## What is Partially Done
-
-- 🟡 Vercel frontend deployment: initiated, build in progress
-- 🟡 VITE_API_URL: set to placeholder — needs Render URL update after Render deploy
-
-## What Remains (Requires Manual Browser Steps)
-
-### 1. Neon PostgreSQL Setup
-1. Go to https://console.neon.tech → Create free project
-2. Database: `knowledge_assistant`
-3. Run in SQL Editor: `CREATE EXTENSION IF NOT EXISTS vector;`
-4. Copy connection string → `DATABASE_URL`
-
-### 2. Cloudflare R2 Setup
-1. Go to https://dash.cloudflare.com → R2 → Create bucket
-2. Create R2 API token (Object Read & Write)
-3. Copy: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`
-
-### 3. Google Gemini API Key
-1. Go to https://aistudio.google.com/app/apikey
-2. Create API key → `GEMINI_API_KEY`
-
-### 4. Render Backend Deployment
-1. Go to https://dashboard.render.com → New → Web Service
-2. Connect: `sarwjeet424/ai-knowledge-assistant`
-3. Settings:
-   - Runtime: **Docker**
-   - Dockerfile: `./Dockerfile`
-   - Context: `.`
-   - Plan: **Free**
-   - Health Check: `/api/v1/health`
-4. Set all environment variables (see docs/deployment-guide.md)
-5. Deploy and get Render URL
-
-### 5. Update Vercel VITE_API_URL
-After Render deploys:
-1. Vercel dashboard → `web` project → Settings → Environment Variables
-2. Add: `VITE_API_URL` = `https://<render-url>/api/v1`
-3. Redeploy Vercel
-
-### 6. Update Render WEB_ORIGIN
-After Vercel deploys:
-1. Render dashboard → Service → Environment
-2. Update: `WEB_ORIGIN` = `https://<vercel-url>`
+1. **Migration SQL** (`apps/api/prisma/migrations/0001_init/migration.sql`) — was stub comments only; now has the full DDL for all 6 tables + pgvector extension + foreign keys + indexes + `vector(768)` column
+2. **Gemini SDK** (`ai-service/app/providers/gemini.py`) — fixed from `interactions.create()` (Antigravity agent API) to correct `client.aio.models.generate_content()` with `GenerateContentConfig(system_instruction=...)`; embeddings use `client.aio.models.embed_content()` (async)
+3. **pydantic pin** (`ai-service/requirements.txt`) — bumped from `>=2.10.0` to `>=2.12.5` (required by google-genai 3.x)
+4. **Groq model** — updated default from deprecated `llama-3.1-70b-versatile` to `llama-3.3-70b-versatile`
+5. **CI branches** (`.github/workflows/ci.yml`) — CI now triggers on both `main` and `master`
 
 ---
 
-## Authentication Steps Completed
+## 🔧 Manual Steps Required (in order)
 
-| Step | Status |
-|---|---|
-| GitHub CLI login (sarwjeet424) | ✅ |
-| GitHub workflow scope | ✅ |
-| Vercel CLI login | ✅ |
+### STEP 1 — Neon PostgreSQL
+
+1. Go to **https://console.neon.tech** → Sign up / Log in
+2. Click **New Project** → Name: `knowledge-assistant` → Region: closest to you
+3. After project creates, click **SQL Editor**
+4. Run: `CREATE EXTENSION IF NOT EXISTS vector;`
+5. Go to **Dashboard → Connection string** → Copy the full string (includes `?sslmode=require`)
+6. Save it — this is your `DATABASE_URL`
+
+> [!IMPORTANT]
+> The connection string format is:
+> `postgresql://username:password@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require`
+
+### STEP 2 — Cloudflare R2
+
+1. Go to **https://dash.cloudflare.com** → Log in → **R2 Object Storage**
+2. Click **Create bucket** → Name: `ai-knowledge-assistant` → Keep all defaults → **Create**
+3. Go to **R2 → Manage R2 API Tokens** → **Create API token**
+   - Permissions: **Object Read & Write**
+   - Bucket access: **Specific bucket** → select `ai-knowledge-assistant`
+   - Click **Create API Token**
+4. **Copy and save** immediately (shown only once):
+   - `Access Key ID` → `R2_ACCESS_KEY_ID`
+   - `Secret Access Key` → `R2_SECRET_ACCESS_KEY`
+5. Your **Account ID** is in the R2 dashboard URL: `dash.cloudflare.com/<ACCOUNT_ID>/r2`
+   - `R2_ACCOUNT_ID=<your account ID>`
+   - `R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com`
+   - `R2_BUCKET_NAME=ai-knowledge-assistant`
+
+### STEP 3 — Google Gemini API Key
+
+1. Go to **https://aistudio.google.com/app/apikey**
+2. Click **Create API key** → Select or create a Google Cloud project
+3. Copy the key → `GEMINI_API_KEY`
+
+> [!NOTE]
+> Free tier: 15 RPM, 1500 RPD (requests per day) for Gemini Flash. If quota exhausted, the app returns a 429 error — it will NOT switch to a paid tier.
+
+### STEP 4 — Generate JWT Secret
+
+Run in PowerShell:
+```powershell
+[System.Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(48))
+```
+Save output → `JWT_SECRET`
+
+### STEP 5 — Deploy Render Backend
+
+1. Go to **https://dashboard.render.com** → Sign up / Log in
+2. Click **New +** → **Web Service**
+3. Click **Connect a repository** → Authorize GitHub → Select `sarwjeet424/ai-knowledge-assistant`
+4. Settings:
+   - **Name:** `ai-knowledge-assistant`
+   - **Region:** Oregon (US West)
+   - **Branch:** `master`
+   - **Runtime:** Docker ← **important**
+   - **Dockerfile Path:** `./Dockerfile`
+   - **Docker Context:** `.`
+   - **Plan:** **Free** ← must select Free
+   - **Health Check Path:** `/api/v1/health`
+5. Click **Advanced** → **Add Environment Variables** (add ALL of these):
+
+```
+NODE_ENV=production
+PORT=3000
+MOCK_AI=false
+AI_SERVICE_URL=http://localhost:8000
+AI_SERVICE_PORT=8000
+DATABASE_URL=<your-neon-connection-string>
+JWT_SECRET=<generated-above>
+GEMINI_API_KEY=<your-gemini-key>
+GEMINI_CHAT_MODEL=gemini-flash-latest
+GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+LLM_PROVIDER=gemini
+EMBEDDING_PROVIDER=gemini
+GROQ_API_KEY=<optional-leave-blank-if-no-key>
+GROQ_CHAT_MODEL=llama-3.3-70b-versatile
+R2_BUCKET_NAME=ai-knowledge-assistant
+R2_ACCOUNT_ID=<your-cloudflare-account-id>
+R2_ACCESS_KEY_ID=<your-r2-access-key-id>
+R2_SECRET_ACCESS_KEY=<your-r2-secret-access-key>
+R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+WEB_ORIGIN=https://web-beige-nu-95.vercel.app
+```
+
+6. Click **Create Web Service**
+7. Wait for first build (~5-10 min). Watch logs for:
+   - `==> Running Prisma migrations...`
+   - `API server listening on 0.0.0.0:3000`
+   - `uvicorn.error: Application startup complete.`
+8. Once deployed, copy the Render URL (format: `https://ai-knowledge-assistant-xxxx.onrender.com`)
+
+> [!WARNING]
+> Free Render instances **sleep after 15 minutes of inactivity**. The first request after sleep takes ~30-60s. This is expected behavior on the free tier.
+
+### STEP 6 — Update Vercel VITE_API_URL
+
+After Render gives you a URL:
+
+**Option A — CLI (run in PowerShell from project root):**
+```powershell
+cd apps/web
+vercel env add VITE_API_URL production
+# When prompted, enter: https://<your-render-url>/api/v1
+vercel --prod
+```
+
+**Option B — Dashboard:**
+1. Go to https://vercel.com/sarwjeet424gmailcoms-projects/web/settings/environment-variables
+2. Add: `VITE_API_URL` = `https://<your-render-url>/api/v1`
+3. Trigger a redeploy: **Deployments** → **...** → **Redeploy**
+
+### STEP 7 — Disable Vercel Deployment Protection
+
+The current Vercel deployment may require Vercel login to access.
+To allow public access:
+1. Go to https://vercel.com/sarwjeet424gmailcoms-projects/web/settings
+2. Find **Deployment Protection** (or **Password Protection**)
+3. Disable it / set to **No protection**
 
 ---
 
-## Potential Billing Risks
+## STEP 8 — Verify Everything Works
 
-> All services used are genuinely free. No credit card required.
+```bash
+# 1. Health check — Render backend
+curl https://<render-url>/api/v1/health
+# Expected: {"status":"ok","service":"api","timestamp":"...","mock":false}
 
-| Risk | Mitigation |
-|---|---|
-| Neon storage > 0.5 GB | App limits 10 docs × 10 MB = max 100 MB per org |
-| Gemini quota 429 | Exponential backoff → Groq fallback → 503 error |
-| Render > 750 hours/month | Free tier includes 750 hours; single service uses ~720 hours |
-| R2 Class A ops > 1M | Uploads are ~20 per demo setup; nowhere near limit |
-| Vercel bandwidth > 100 GB | Static site, demo traffic — nowhere near limit |
+# 2. AI service health (proxied through NestJS → FastAPI internally)
+# Check Render logs: "AI service starting up (MOCK_AI=False)"
+
+# 3. Frontend loads
+# Open: https://web-beige-nu-95.vercel.app
+```
+
+Then end-to-end test:
+1. Register: https://web-beige-nu-95.vercel.app/register
+2. Upload a PDF document  
+3. Wait for `READY` status (embedding generation ~30s)
+4. Create assistant → get token
+5. Test public assistant at `/a/<token>`
+6. Ask a question → verify Gemini-generated answer with citations
 
 ---
 
-## Production Tests (Pending Render Deploy)
+## Environment Variables Quick Reference
 
-| Test | Status |
-|---|---|
-| Organization registration | ⏳ |
-| Organization login | ⏳ |
-| PDF upload | ⏳ |
-| Document processing + embeddings | ⏳ |
-| Document listing | ⏳ |
-| Document deletion + R2 cleanup | ⏳ |
-| Assistant token generation | ⏳ |
-| Public assistant URL | ⏳ |
-| Visitor chat | ⏳ |
-| Gemini AI answer | ⏳ |
-| Source page references | ⏳ |
-| Multi-condition decision | ⏳ |
-| Cross-org isolation | ⏳ |
-| MOCK_AI=false in production | ⏳ |
+```env
+NODE_ENV=production
+PORT=3000
+MOCK_AI=false
+
+DATABASE_URL=postgresql://...@...neon.tech/neondb?sslmode=require
+
+JWT_SECRET=<48-bytes-base64>
+
+GEMINI_API_KEY=AIza...
+GEMINI_CHAT_MODEL=gemini-flash-latest
+GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+LLM_PROVIDER=gemini
+EMBEDDING_PROVIDER=gemini
+
+GROQ_API_KEY=gsk_... (optional)
+GROQ_CHAT_MODEL=llama-3.3-70b-versatile
+
+AI_SERVICE_URL=http://localhost:8000
+AI_SERVICE_PORT=8000
+
+R2_ACCOUNT_ID=...
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_BUCKET_NAME=ai-knowledge-assistant
+R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+
+WEB_ORIGIN=https://web-beige-nu-95.vercel.app
+VITE_API_URL=https://<render-url>/api/v1  (Vercel env, not Render)
+```
+
+---
+
+## Free Tier Limits
+
+| Service | Free Limit | Overage Behavior |
+|---|---|---|
+| Vercel Hobby | 100 GB bandwidth/mo | Deployment paused |
+| Render Free | 750 hours/mo (1 service) | Sleeps after inactivity |
+| Neon Free | 0.5 GB storage, 1 compute | Queries fail (no charges) |
+| Cloudflare R2 | 10 GB storage, 10M reads, 1M writes/mo | Charges apply above free — monitor! |
+| Gemini Flash | 15 RPM, 1500 RPD | 429 error returned |
+| Groq Free | Model-specific limits | 429 error returned |
