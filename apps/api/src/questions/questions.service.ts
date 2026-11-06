@@ -1,8 +1,9 @@
 import {
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
-  TooManyRequestsException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
@@ -51,18 +52,32 @@ export class QuestionsService {
     // ---------------------------------------------------------------------------
     // Retrieve relevant chunks
     // ---------------------------------------------------------------------------
-    const allChunks = await this.prisma.documentChunk.findMany({
+    type ChunkRow = {
+      id: string;
+      organizationId: string;
+      documentId: string;
+      chunkIndex: number;
+      pageNumber: number;
+      content: string;
+      embedding: unknown;
+      document: { id: string; filename: string };
+    };
+
+    const allChunks = (await this.prisma.documentChunk.findMany({
       where: { organizationId: orgId, document: { processingStatus: 'READY' } },
       include: { document: { select: { id: true, filename: true } } },
-    });
+    })) as ChunkRow[];
 
     const terms = this.terms(question);
     const ranked = allChunks
-      .map((c) => ({
-        ...c,
-        score: terms.reduce((n, t) => n + (c.content.toLowerCase().includes(t) ? 1 : 0), 0),
+      .map((chunk: ChunkRow) => ({
+        ...chunk,
+        score: terms.reduce(
+          (acc: number, term: string) => acc + (chunk.content.toLowerCase().includes(term) ? 1 : 0),
+          0,
+        ),
       }))
-      .filter((c) => c.score > 0)
+      .filter((chunk) => chunk.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, MAX_CONTEXT_CHUNKS);
 
@@ -266,7 +281,7 @@ export class QuestionsService {
       return;
     }
     if (bucket.count >= 30) {
-      throw new TooManyRequestsException('Please wait before asking more questions');
+      throw new HttpException('Please wait before asking more questions', HttpStatus.TOO_MANY_REQUESTS);
     }
     bucket.count++;
   }

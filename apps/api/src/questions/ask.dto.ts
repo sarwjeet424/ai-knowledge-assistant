@@ -5,10 +5,10 @@ export class AskDto {
   @ApiProperty({ description: 'Public assistant token' })
   @IsString()
   @Length(10, 200)
-  assistantToken: string;
+  assistantToken!: string;
 
   @ApiProperty({ description: 'Question text', maxLength: 1000 })
   @IsString()
   @MaxLength(1000)
-  question: string;
+  question!: string;
 }

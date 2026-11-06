@@ -7,6 +7,7 @@ import {
   PayloadTooLargeException,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../database/prisma.service';
 import { StorageProvider } from '../storage/storage.interface';
@@ -81,7 +82,7 @@ export class DocumentsService {
 
     try {
       // Create DB record and chunks in a transaction
-      const document = await this.prisma.$transaction(async (tx) => {
+      const document = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const doc = await tx.document.create({
           data: {
             organizationId: orgId,
@@ -250,7 +251,7 @@ export class DocumentsService {
       const response = await fetch(`${aiUrl}/embed-batch`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ texts: chunks.map((c) => c.content) }),
+        body: JSON.stringify({ texts: chunks.map((c: { id: string; content: string }) => c.content) }),
         signal: AbortSignal.timeout(60_000),
       });
 
