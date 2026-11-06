@@ -2,13 +2,14 @@
 Gemini LLM and Embedding providers using the google-genai SDK.
 
 Free-tier models:
-  - LLM:        gemini-3.8-flash  (1 M token context, free tier)
+  - LLM:        gemini-flash-latest  (free tier, generate_content API)
   - Embeddings: gemini-embedding-001 (768-dim text embeddings, free tier)
 
 Data-privacy note:
   Gemini free-tier content may be used by Google to improve its products.
   Only synthetic / demonstration documents should be processed.
 """
+import asyncio
 import logging
 from typing import List, Optional
 
@@ -29,19 +30,21 @@ from app.providers.retry import ProviderError, RateLimitError, with_retry
 
 logger = logging.getLogger(__name__)
 
-# Gemini embedding-001 always produces 768-dim vectors
+# gemini-embedding-001 always produces 768-dim vectors
 GEMINI_EMBEDDING_DIMS = 768
 
 
 class GeminiLLMProvider(LLMProvider):
-    """Gemini text generation via google-genai Interactions API."""
+    """Gemini text generation via google-genai generate_content (async)."""
 
     def __init__(self):
         if not GEMINI_API_KEY:
             raise ProviderError("GEMINI_API_KEY is not configured")
         try:
             from google import genai  # type: ignore
+            from google.genai import types as genai_types  # type: ignore
             self._client = genai.Client(api_key=GEMINI_API_KEY)
+            self._types = genai_types
         except ImportError as exc:
             raise ProviderError("google-genai package not installed") from exc
         self._model = GEMINI_CHAT_MODEL
@@ -62,20 +65,25 @@ class GeminiLLMProvider(LLMProvider):
         max_tokens: int = 1024,
         temperature: float = 0.2,
     ) -> LLMResponse:
-        full_prompt = f"{system}\n\n{prompt}" if system else prompt
+        config = self._types.GenerateContentConfig(
+            system_instruction=system if system else None,
+            max_output_tokens=max_tokens,
+            temperature=temperature,
+        )
 
         async def _call():
             try:
-                interaction = self._client.interactions.create(
+                response = await self._client.aio.models.generate_content(
                     model=self._model,
-                    input=full_prompt,
-                    store=False,
+                    contents=prompt,
+                    config=config,
                 )
-                usage = getattr(interaction, "usage", None)
+                usage = getattr(response, "usage_metadata", None)
+                text = response.text or ""
                 return LLMResponse(
-                    text=interaction.output_text or "",
-                    input_tokens=getattr(usage, "input_tokens", 0) if usage else 0,
-                    output_tokens=getattr(usage, "output_tokens", 0) if usage else 0,
+                    text=text,
+                    input_tokens=getattr(usage, "prompt_token_count", 0) if usage else 0,
+                    output_tokens=getattr(usage, "candidates_token_count", 0) if usage else 0,
                     provider=self.name,
                     model=self._model,
                 )
@@ -89,14 +97,14 @@ class GeminiLLMProvider(LLMProvider):
 
     async def health(self) -> bool:
         try:
-            resp = await self.generate("ping", max_tokens=4)
+            resp = await self.generate("Say OK", max_tokens=4)
             return bool(resp.text)
         except Exception:
             return False
 
 
 class GeminiEmbeddingProvider(EmbeddingProvider):
-    """Gemini text embeddings via google-genai SDK."""
+    """Gemini text embeddings via google-genai SDK (async)."""
 
     def __init__(self):
         if not GEMINI_API_KEY:
@@ -124,7 +132,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
     async def embed(self, text: str) -> EmbeddingResponse:
         async def _call():
             try:
-                result = self._client.models.embed_content(
+                result = await self._client.aio.models.embed_content(
                     model=self._model,
                     contents=text,
                 )
@@ -144,10 +152,14 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
         return await with_retry(_call, max_retries=MAX_RETRIES, base_delay=RETRY_BASE_DELAY, provider_name="gemini-embed")
 
     async def embed_batch(self, texts: List[str]) -> List[EmbeddingResponse]:
-        # Gemini embed_content supports batch
+        """
+        Embed multiple texts. Gemini embed_content supports batching —
+        pass a list of strings, get a list of embeddings back.
+        Falls back to sequential if batch fails.
+        """
         async def _call():
             try:
-                result = self._client.models.embed_content(
+                result = await self._client.aio.models.embed_content(
                     model=self._model,
                     contents=texts,
                 )
@@ -166,7 +178,12 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
                     raise RateLimitError(str(exc)) from exc
                 raise
 
-        return await with_retry(_call, max_retries=MAX_RETRIES, base_delay=RETRY_BASE_DELAY, provider_name="gemini-embed-batch")
+        try:
+            return await with_retry(_call, max_retries=MAX_RETRIES, base_delay=RETRY_BASE_DELAY, provider_name="gemini-embed-batch")
+        except Exception:
+            # Fallback: embed sequentially
+            logger.warning("Batch embedding failed, falling back to sequential")
+            return [await self.embed(t) for t in texts]
 
     async def health(self) -> bool:
         try:

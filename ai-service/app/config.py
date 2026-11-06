@@ -14,7 +14,7 @@ GEMINI_EMBEDDING_MODEL = os.environ.get("GEMINI_EMBEDDING_MODEL", "gemini-embedd
 
 # --- Groq ---
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-GROQ_CHAT_MODEL = os.environ.get("GROQ_CHAT_MODEL", "llama-3.1-70b-versatile")
+GROQ_CHAT_MODEL = os.environ.get("GROQ_CHAT_MODEL", "llama-3.3-70b-versatile")
 
 # --- Limits ---
 MAX_CONTEXT_CHUNKS = int(os.environ.get("MAX_CONTEXT_CHUNKS", "5"))
