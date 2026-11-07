@@ -5,6 +5,7 @@
 
 # ---- Stage 1: Build NestJS ----
 FROM node:22-slim AS nestjs-builder
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /build/apps/api
 # Install API dependencies independently (no monorepo hoisting)
 COPY apps/api/package.json ./
@@ -16,10 +17,11 @@ RUN npx prisma generate && npm run build
 # ---- Stage 2: Combined runtime ----
 FROM python:3.12-slim AS runtime
 
-# Install Node.js 22 LTS
+# Install Node.js 22 LTS and OpenSSL
 RUN apt-get update && apt-get install -y \
     curl \
     supervisor \
+    openssl \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean \
