@@ -1,32 +1,38 @@
 import { Module } from '@nestjs/common';
 import { StorageProvider } from './storage.interface';
 import { LocalStorageProvider } from './local.storage';
-import { R2StorageProvider } from './r2.storage';
+import { S3StorageProvider } from './s3.storage';
 
 const STORAGE_PROVIDER = 'STORAGE_PROVIDER';
 
 export { STORAGE_PROVIDER };
 
+/**
+ * Selects S3StorageProvider (Neon Object Storage or any S3-compatible) when
+ * STORAGE_BUCKET_NAME is set, otherwise falls back to LocalStorageProvider
+ * (dev/test only — data lost on container restart).
+ */
 @Module({
   providers: [
     {
       provide: STORAGE_PROVIDER,
       useFactory: (): StorageProvider => {
         const isProduction = process.env.NODE_ENV === 'production';
-        const hasR2Config =
-          process.env.R2_BUCKET_NAME &&
-          process.env.R2_ACCESS_KEY_ID &&
-          process.env.R2_SECRET_ACCESS_KEY &&
-          process.env.R2_ENDPOINT;
+        const hasS3Config =
+          process.env.STORAGE_BUCKET_NAME &&
+          process.env.STORAGE_ACCESS_KEY_ID &&
+          process.env.STORAGE_SECRET_ACCESS_KEY &&
+          process.env.STORAGE_ENDPOINT;
 
-        if (isProduction && !hasR2Config) {
+        if (isProduction && !hasS3Config) {
           throw new Error(
-            'Production deployment requires R2 configuration: R2_BUCKET_NAME, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT',
+            'Production requires object storage: STORAGE_BUCKET_NAME, STORAGE_ACCESS_KEY_ID, ' +
+            'STORAGE_SECRET_ACCESS_KEY, STORAGE_ENDPOINT',
           );
         }
 
-        if (hasR2Config) {
-          return new R2StorageProvider();
+        if (hasS3Config) {
+          return new S3StorageProvider();
         }
 
         return new LocalStorageProvider();

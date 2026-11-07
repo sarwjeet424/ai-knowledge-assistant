@@ -21,13 +21,13 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
-        generateValue: true
+        sync: false
       - key: WEB_ORIGIN
         sync: false
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_CHAT_MODEL
-        value: gemini-3.8-flash
+        value: gemini-flash-latest
       - key: GEMINI_EMBEDDING_MODEL
         value: gemini-embedding-001
       - key: GROQ_API_KEY
@@ -38,13 +38,13 @@ services:
         value: gemini
       - key: EMBEDDING_PROVIDER
         value: gemini
-      - key: R2_BUCKET_NAME
+      - key: STORAGE_BUCKET_NAME
         sync: false
-      - key: R2_ACCOUNT_ID
+      - key: STORAGE_ACCESS_KEY_ID
         sync: false
-      - key: R2_ACCESS_KEY_ID
+      - key: STORAGE_SECRET_ACCESS_KEY
         sync: false
-      - key: R2_SECRET_ACCESS_KEY
+      - key: STORAGE_ENDPOINT
         sync: false
-      - key: R2_ENDPOINT
-        sync: false
+      - key: STORAGE_REGION
+        value: us-east-2
