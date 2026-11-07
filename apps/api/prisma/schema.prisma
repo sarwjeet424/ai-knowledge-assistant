@@ -9,8 +9,19 @@ datasource db {
   extensions = [pgvector(map: "vector")]
 }
 
-enum ProcessingStatus { PENDING PROCESSING READY FAILED }
-enum QuestionStatus { ANSWERED UNABLE_TO_ANSWER HUMAN_REVIEW FAILED }
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum QuestionStatus {
+  ANSWERED
+  UNABLE_TO_ANSWER
+  HUMAN_REVIEW
+  FAILED
+}
 
 model Organization {
   id           String     @id @default(cuid())
@@ -39,7 +50,7 @@ model Assistant {
 }
 
 model Document {
-  id               String          @id @default(cuid())
+  id               String           @id @default(cuid())
   organizationId   String
   filename         String
   storagePath      String

@@ -4,25 +4,23 @@
 # ============================================================
 
 # ---- Stage 1: Build NestJS ----
-FROM node:20-alpine AS nestjs-builder
-WORKDIR /build
-COPY package*.json ./
-COPY apps/api/package.json apps/api/package.json
-RUN npm install --workspaces=false --prefix . || true
+FROM node:22-alpine AS nestjs-builder
 WORKDIR /build/apps/api
-COPY apps/api/package.json .
+# Install API dependencies independently (no monorepo hoisting)
+COPY apps/api/package.json ./
 RUN npm install
-COPY apps/api/ .
+# Copy source and generate Prisma client + compile TypeScript
+COPY apps/api/ ./
 RUN npx prisma generate && npm run build
 
 # ---- Stage 2: Combined runtime ----
 FROM python:3.12-slim AS runtime
 
-# Install Node.js 20
+# Install Node.js 22 LTS
 RUN apt-get update && apt-get install -y \
     curl \
     supervisor \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -35,12 +33,12 @@ COPY ai-service/ .
 
 # ---- NestJS API ----
 WORKDIR /api
-# Copy node_modules from builder
+# Copy built artifacts and production node_modules from builder
 COPY --from=nestjs-builder /build/apps/api/node_modules ./node_modules
 COPY --from=nestjs-builder /build/apps/api/dist ./dist
 COPY --from=nestjs-builder /build/apps/api/prisma ./prisma
-# Need prisma CLI for migrations
-RUN npm install prisma @prisma/client --no-save
+# Minimal package.json so prisma CLI can run migrations
+COPY apps/api/package.json ./package.json
 
 # ---- Supervisor config ----
 COPY Dockerfile.supervisor.conf /etc/supervisor/conf.d/app.conf
