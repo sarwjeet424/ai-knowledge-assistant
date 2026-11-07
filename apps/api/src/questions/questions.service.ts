@@ -19,8 +19,15 @@ const MAX_CONTEXT_CHUNKS = 5;
 
 /** Semantic similarity search fallback: keyword-based BM25-lite */
 const STOPWORDS = new Set([
-  'what','with','that','this','have','from','your','eligible','please',
-  'does','about','which','there','their','they','into','would','could',
+  'a', 'an', 'the', 'and', 'or', 'but', 'nor', 'for', 'yet', 'so',
+  'what', 'with', 'that', 'this', 'have', 'from', 'your', 'eligible', 'please',
+  'does', 'about', 'which', 'there', 'their', 'they', 'into', 'would', 'could',
+  'are', 'was', 'were', 'will', 'has', 'had', 'been', 'being', 'how', 'who',
+  'whom', 'why', 'when', 'where', 'each', 'some', 'more', 'most', 'other',
+  'such', 'only', 'same', 'than', 'too', 'very', 'just', 'should', 'now',
+  'our', 'you', 'its', 'them', 'these', 'those', 'did', 'doing', 'shall',
+  'must', 'may', 'might', 'also', 'tell', 'give', 'find', 'show', 'help',
+  'need', 'want', 'can', 'not', 'any', 'all', 'out', 'over', 'then',
 ]);
 
 @Injectable()

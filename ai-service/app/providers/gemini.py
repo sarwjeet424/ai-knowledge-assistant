@@ -135,6 +135,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
                 result = await self._client.aio.models.embed_content(
                     model=self._model,
                     contents=text,
+                    config={"output_dimensionality": GEMINI_EMBEDDING_DIMS},
                 )
                 vec = result.embeddings[0].values
                 return EmbeddingResponse(
@@ -162,6 +163,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
                 result = await self._client.aio.models.embed_content(
                     model=self._model,
                     contents=texts,
+                    config={"output_dimensionality": GEMINI_EMBEDDING_DIMS},
                 )
                 return [
                     EmbeddingResponse(

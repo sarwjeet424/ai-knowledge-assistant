@@ -1,12 +1,21 @@
 {
   "name": "ai-knowledge-decision-assistant",
   "private": true,
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev:web": "npm --workspace @akda/web run dev",
     "dev:api": "npm --workspace @akda/api run start:dev",
     "build": "npm --workspace @akda/api run build && npm --workspace @akda/web run build",
     "test": "npm --workspace @akda/api test && npm --workspace @akda/web test",
     "seed:fixtures": "node sample-data/generate-fixtures.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "caniuse-lite": "^1.0.30001823"
   }
 }

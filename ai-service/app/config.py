@@ -9,7 +9,7 @@ MOCK_AI = os.environ.get("MOCK_AI", _default_mock).lower() not in ("false", "0",
 
 # --- Gemini ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_CHAT_MODEL = os.environ.get("GEMINI_CHAT_MODEL", "gemini-2.5-flash")
+GEMINI_CHAT_MODEL = os.environ.get("GEMINI_CHAT_MODEL", "gemini-3.5-flash-lite")
 GEMINI_EMBEDDING_MODEL = os.environ.get("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
 # gemini-embedding-001 produces 768-dimensional vectors (matches schema)
 
