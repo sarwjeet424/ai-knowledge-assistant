@@ -4,40 +4,38 @@ A multi-tenant, evidence-based AI assistant that answers questions grounded in u
 
 ## 🔗 Live URLs
 
-> *To be updated after deployment*
-
 | Service | URL | Status |
 |---|---|---|
-| Frontend | — | Pending |
-| Backend API | — | Pending |
-| AI Service health | Included in backend | Pending |
-| API Docs (Swagger) | — `/api/docs` | Pending |
+| **Frontend** | [https://web-beige-nu-95.vercel.app](https://web-beige-nu-95.vercel.app) | 🟢 Live |
+| **Backend API** | [https://ai-knowledge-assistant-ocjw.onrender.com/api/v1](https://ai-knowledge-assistant-ocjw.onrender.com/api/v1) | 🟢 Live |
+| **API Health** | [https://ai-knowledge-assistant-ocjw.onrender.com/api/v1/health](https://ai-knowledge-assistant-ocjw.onrender.com/api/v1/health) | 🟢 Live |
+| **API Docs (Swagger)** | [https://ai-knowledge-assistant-ocjw.onrender.com/api/docs](https://ai-knowledge-assistant-ocjw.onrender.com/api/docs) | 🟢 Live |
 
 ## 🏗️ Architecture
 
 ```
 Vercel (React SPA)
     ↕ HTTPS
-Render (NestJS + FastAPI in Docker)
+Render (NestJS + FastAPI in Docker via supervisord)
     ↕                    ↕
-Neon PostgreSQL    Cloudflare R2
-(+ pgvector)       (PDF storage)
+Neon PostgreSQL       Neon S3
+(+ pgvector 768-dim)  (Object storage for PDFs)
     ↕
-Gemini API (LLM + Embeddings)
+Google Gemini API (gemini-2.5-flash + gemini-embedding-001)
 Groq (optional fallback LLM)
 ```
 
 ## 🆓 Free-Tier Services
 
-| Service | Provider | Plan |
-|---|---|---|
-| Frontend | Vercel | Hobby (free) |
-| Backend + AI service | Render | Free web service |
-| Database | Neon | Free PostgreSQL |
-| PDF storage | Cloudflare R2 | Free allowance |
-| LLM | Google Gemini | AI Studio free tier |
-| Embeddings | Google Gemini | AI Studio free tier |
-| LLM fallback | Groq | Free developer |
+| Service | Provider | Plan | Cost |
+|---|---|---|---|
+| Frontend | Vercel | Hobby | ₹0 |
+| Backend + AI service | Render | Free Docker web service | ₹0 |
+| Database + pgvector | Neon | Free Serverless PostgreSQL | ₹0 |
+| PDF Object Storage | Neon | S3-compatible object storage | ₹0 |
+| Primary LLM | Google Gemini | AI Studio free tier (gemini-2.5-flash) | ₹0 |
+| Embeddings | Google Gemini | AI Studio free tier (gemini-embedding-001) | ₹0 |
+| LLM Fallback | Groq | Developer free tier (llama-3.3-70b-versatile) | ₹0 |
 
 **Budget: ₹0 / month**
 
