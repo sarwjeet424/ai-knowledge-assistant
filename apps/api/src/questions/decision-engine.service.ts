@@ -8,7 +8,7 @@ type Policy = { minimumGpa?: number; requiresSecondYear: boolean; prohibitsSport
 @Injectable()
 export class DecisionEngineService {
   async evaluate(question: string, evidence: string): Promise<Decision[]> {
-    if (!/eligible|qualify|scholarship|admission|priority/i.test(question)) return [];
+    if (!/eligible|qualify|eligibility|can i|am i|do i meet|may i receive/i.test(question)) return [];
     const policy = this.extractPolicy(evidence);
     const facts = this.extractFacts(question);
     return Promise.all([
@@ -36,7 +36,15 @@ export class DecisionEngineService {
   private extractFacts(question: string) {
     const normalized = question.toLowerCase();
     const gpa = normalized.match(/(?:gpa|cgpa)\s*(?:of|is|:)?\s*(\d(?:\.\d+)?)/)?.[1];
-    const year = /\b(second|2nd|two)\s+year\b/.test(normalized) ? 2 : /\b(first|1st|one)\s+year\b/.test(normalized) ? 1 : undefined;
+    let year: number | undefined;
+    if (/\b(first|1st|one)\s+year\b|\byear\s+1\b/i.test(normalized)) year = 1;
+    else if (/\b(second|2nd|two)\s+year\b|\byear\s+2\b/i.test(normalized)) year = 2;
+    else if (/\b(third|3rd|three)\s+year\b|\byear\s+3\b/i.test(normalized)) year = 3;
+    else if (/\b(fourth|4th|four)\s+year\b|\byear\s+4\b/i.test(normalized)) year = 4;
+    else {
+      const match = normalized.match(/\b(?:in\s+)?(?:my\s+)?(\d+)(?:st|nd|rd|th)?\s+year\b|\byear\s+(\d+)\b/);
+      if (match) year = Number(match[1] || match[2]);
+    }
     return { gpa: gpa ? Number(gpa) : undefined, year, sportsScholarship: /(?:already )?(?:receive|hold|have).{0,40}sports scholarship|sports scholarship holder/.test(normalized) };
   }
 

@@ -99,7 +99,7 @@ export class QuestionsService {
         question,
         status: ranked.length ? 'ANSWERED' : 'UNABLE_TO_ANSWER',
         questionType,
-        decisionRequired: /eligible|qualify|scholarship/i.test(question),
+        decisionRequired: /eligible|qualify|eligibility|can i|am i/i.test(question),
       },
     });
 
