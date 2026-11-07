@@ -4,7 +4,7 @@
 # ============================================================
 
 # ---- Stage 1: Build NestJS ----
-FROM node:22-alpine AS nestjs-builder
+FROM node:22-slim AS nestjs-builder
 WORKDIR /build/apps/api
 # Install API dependencies independently (no monorepo hoisting)
 COPY apps/api/package.json ./

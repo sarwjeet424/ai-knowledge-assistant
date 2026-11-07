@@ -4,7 +4,8 @@ import os
 # --- AI Provider Selection ---
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "gemini").lower()
 EMBEDDING_PROVIDER = os.environ.get("EMBEDDING_PROVIDER", "gemini").lower()
-MOCK_AI = os.environ.get("MOCK_AI", "true").lower() not in ("false", "0", "no")
+_default_mock = "false" if os.environ.get("NODE_ENV") == "production" else "true"
+MOCK_AI = os.environ.get("MOCK_AI", _default_mock).lower() not in ("false", "0", "no")
 
 # --- Gemini ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
