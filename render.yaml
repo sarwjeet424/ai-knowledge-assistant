@@ -27,7 +27,7 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_CHAT_MODEL
-        value: gemini-flash-latest
+        value: gemini-2.5-flash
       - key: GEMINI_EMBEDDING_MODEL
         value: gemini-embedding-001
       - key: GROQ_API_KEY

@@ -28,7 +28,7 @@ export function configuration() {
         .filter(Boolean),
     },
     storage: {
-      provider: process.env.R2_BUCKET_NAME ? 'r2' : 'local',
+      provider: process.env.STORAGE_BUCKET_NAME ? 's3' : 'local',
     },
   };
 }
